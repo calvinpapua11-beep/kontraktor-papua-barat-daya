@@ -50,22 +50,23 @@ function generateRoutes(node: Tree): RouteConfigEntry[] {
 	return routes;
 }
 
-const pages = import.meta.glob('./**/page.jsx', { eager: true });
+// Use lazy glob to avoid importing the modules here
+const pages = import.meta.glob('./**/page.jsx');
 
 const root: Tree = { path: '', children: [], hasPage: false };
 const treeMap: Record<string, Tree> = { '': root };
 
 for (const path in pages) {
+	// path is like './account/logout/page.jsx' or './page.jsx'
 	const relativePath = path.replace('./', '').replace('/page.jsx', '');
-	const segments = relativePath.split('/').filter(Boolean);
 
-	if (path === './page.jsx') {
+	if (path === './page.jsx' || relativePath === 'page.jsx') {
 		root.hasPage = true;
 		continue;
 	}
 
+	const segments = relativePath.split('/').filter(Boolean);
 	let currentPath = '';
-	let currentTree = root;
 
 	for (const segment of segments) {
 		const parentPath = currentPath;
@@ -76,9 +77,11 @@ for (const path in pages) {
 			treeMap[currentPath] = newNode;
 			treeMap[parentPath].children.push(newNode);
 		}
-		currentTree = treeMap[currentPath];
 	}
-	currentTree.hasPage = true;
+
+	if (treeMap[currentPath]) {
+		treeMap[currentPath].hasPage = true;
+	}
 }
 
 const notFound = route('*?', './__create/not-found.tsx');
