@@ -1,7 +1,6 @@
 {
     "version": 2,
-    "devCommand": "npm run dev",
-    "installCommand": "npm install",
     "buildCommand": "npm run build",
-    "framework": "vite"
+    "outputDirectory": "build/client",
+    "framework": "react-router"
 }
