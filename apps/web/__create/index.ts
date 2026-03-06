@@ -40,7 +40,7 @@ const pool = new Pool({
 });
 const adapter = NeonAdapter(pool);
 
-const app = new Hono();
+export const app = new Hono();
 
 app.use('*', requestId());
 
