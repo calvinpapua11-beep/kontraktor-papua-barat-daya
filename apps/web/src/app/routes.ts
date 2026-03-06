@@ -1,71 +1,20 @@
-import { readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
 	type RouteConfigEntry,
 	index,
 	route,
 } from '@react-router/dev/routes';
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-
 type Tree = {
 	path: string;
 	children: Tree[];
 	hasPage: boolean;
-	isParam: boolean;
-	paramName: string;
-	isCatchAll: boolean;
 };
-
-function buildRouteTree(dir: string, basePath = ''): Tree {
-	const files = readdirSync(dir);
-	const node: Tree = {
-		path: basePath,
-		children: [],
-		hasPage: false,
-		isParam: false,
-		isCatchAll: false,
-		paramName: '',
-	};
-
-	// Check if the current directory name indicates a parameter
-	const dirName = basePath.split('/').pop();
-	if (dirName?.startsWith('[') && dirName.endsWith(']')) {
-		node.isParam = true;
-		const paramName = dirName.slice(1, -1);
-
-		// Check if it's a catch-all parameter (e.g., [...ids])
-		if (paramName.startsWith('...')) {
-			node.isCatchAll = true;
-			node.paramName = paramName.slice(3); // Remove the '...' prefix
-		} else {
-			node.paramName = paramName;
-		}
-	}
-
-	for (const file of files) {
-		const filePath = join(dir, file);
-		const stat = statSync(filePath);
-
-		if (stat.isDirectory()) {
-			const childPath = basePath ? `${basePath}/${file}` : file;
-			const childNode = buildRouteTree(filePath, childPath);
-			node.children.push(childNode);
-		} else if (file === 'page.jsx') {
-			node.hasPage = true;
-    }
-	}
-
-	return node;
-}
 
 function generateRoutes(node: Tree): RouteConfigEntry[] {
 	const routes: RouteConfigEntry[] = [];
 
 	if (node.hasPage) {
-		const componentPath =
-			node.path === '' ? `./${node.path}page.jsx` : `./${node.path}/page.jsx`;
+		const componentPath = `./${node.path ? node.path + '/' : ''}page.jsx`;
 
 		if (node.path === '') {
 			routes.push(index(componentPath));
@@ -82,10 +31,6 @@ function generateRoutes(node: Tree): RouteConfigEntry[] {
 					// Handle catch-all parameters (e.g., [...ids] becomes *)
 					if (paramName.startsWith('...')) {
 						return '*'; // React Router's catch-all syntax
-					}
-					// Handle optional parameters (e.g., [[id]] becomes :id?)
-					if (paramName.startsWith('[') && paramName.endsWith(']')) {
-						return `:${paramName.slice(1, -1)}?`;
 					}
 					// Handle regular parameters (e.g., [id] becomes :id)
 					return `:${paramName}`;
@@ -104,16 +49,39 @@ function generateRoutes(node: Tree): RouteConfigEntry[] {
 
 	return routes;
 }
-if (import.meta.env.DEV) {
-	import.meta.glob('./**/page.jsx', {});
-	if (import.meta.hot) {
-		import.meta.hot.accept((newSelf) => {
-			import.meta.hot?.invalidate();
-		});
+
+const pages = import.meta.glob('./**/page.jsx', { eager: true });
+
+const root: Tree = { path: '', children: [], hasPage: false };
+const treeMap: Record<string, Tree> = { '': root };
+
+for (const path in pages) {
+	const relativePath = path.replace('./', '').replace('/page.jsx', '');
+	const segments = relativePath.split('/').filter(Boolean);
+
+	if (path === './page.jsx') {
+		root.hasPage = true;
+		continue;
 	}
+
+	let currentPath = '';
+	let currentTree = root;
+
+	for (const segment of segments) {
+		const parentPath = currentPath;
+		currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+
+		if (!treeMap[currentPath]) {
+			const newNode: Tree = { path: currentPath, children: [], hasPage: false };
+			treeMap[currentPath] = newNode;
+			treeMap[parentPath].children.push(newNode);
+		}
+		currentTree = treeMap[currentPath];
+	}
+	currentTree.hasPage = true;
 }
-const tree = buildRouteTree(__dirname);
+
 const notFound = route('*?', './__create/not-found.tsx');
-const routes = [...generateRoutes(tree), notFound];
+const routes = [...generateRoutes(root), notFound];
 
 export default routes;
