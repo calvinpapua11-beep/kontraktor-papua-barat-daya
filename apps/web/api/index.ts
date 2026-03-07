@@ -1,4 +1,4 @@
 import { handle } from '@hono/node-server/vercel';
-import { app } from '../__create/index';
+import server from '../__create/index';
 
-export default handle(app);
+export default handle(server);

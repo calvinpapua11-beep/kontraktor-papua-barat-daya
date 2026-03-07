@@ -1,14 +1,15 @@
 {
     "version": 2,
+    "framework": "react-router",
     "buildCommand": "npm run build",
     "rewrites": [
         {
             "source": "/api/(.*)",
-            "destination": "/api/index.ts"
+            "destination": "/api/index"
         },
         {
             "source": "/(.*)",
-            "destination": "/api/index.ts"
+            "destination": "/api/index"
         }
     ]
 }
