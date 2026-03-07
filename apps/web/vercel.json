@@ -1,7 +1,7 @@
 {
     "version": 2,
-    "framework": "react-router",
     "buildCommand": "npm run build",
+    "installCommand": "npm install --legacy-peer-deps",
     "rewrites": [
         {
             "source": "/api/(.*)",
