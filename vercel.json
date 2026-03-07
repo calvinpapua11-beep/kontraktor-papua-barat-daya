@@ -1,0 +1,21 @@
+{
+    "version": 2,
+    "buildCommand": "cd apps/web && npm run build",
+    "installCommand": "npm install --legacy-peer-deps",
+    "functions": {
+        "apps/web/api/index.ts": {
+            "memory": 1024,
+            "maxDuration": 10
+        }
+    },
+    "rewrites": [
+        {
+            "source": "/api/(.*)",
+            "destination": "/apps/web/api/index.ts"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/apps/web/api/index.ts"
+        }
+    ]
+}
